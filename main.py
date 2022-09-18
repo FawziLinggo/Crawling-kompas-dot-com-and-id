@@ -23,32 +23,31 @@ def penulis_berita_function(penulis):
 
 # FIX ME :(
 def kompas_domain_id(beautify):
-    judul = beautify.find('h1', {'class', 'ksm-2Y3 ksm-15b'})
-    penulis = beautify.find('div', {'class', 'ksm-1w7 ksm-sDo'})
-    waktu = beautify.find('div', {'class', 'flex items-center mb-1 md:mb-0 text-sm text-grey-50'})
-    baca = beautify.find('span', {'class', 'font-pt-sans'})
-    isi = beautify.find_all('p', {'class', 'ksm-GMg ksm-2BC'})
-
-    judul_string = str(judul)
-    judulberita = BeautifulSoup(judul_string, "html.parser")
-
-    penulis_string = str(penulis)
-    penulisberita = BeautifulSoup(penulis_string, "html.parser")
-
-    waktu_string = str(waktu)
-    waktuberita = BeautifulSoup(waktu_string, "html.parser")
-
-    isi_string = str(isi)
-    isiberita = BeautifulSoup(isi_string, "html.parser")
-
-
     print("\n=========  WWW.KOMPAS.ID =========  ")
-    print("Judul : " + str(judulberita.h1.unwrap()))
-    print("Tanggal Artikel : " +  str(waktuberita.div.unwrap()))
-    print("Link Artikel : " + link)
-    print("Penulis Artikel : " + str(penulisberita.div.unwrap()))
-    print("Isi berita : " + str(isiberita.p.unwrap()))
-    print("=====================================")
+    try:
+        judul = beautify.find('h1', {'class', 'ksm-2Y3 ksm-15b'})
+        penulis = beautify.find('div', {'class', 'ksm-1w7 ksm-sDo'})
+        waktu = beautify.find('div', {'class', 'flex items-center mb-1 md:mb-0 text-sm text-grey-50'})
+        baca = beautify.find('span', {'class', 'font-pt-sans'})
+        isi = beautify.find_all('p', {'class', 'ksm-GMg ksm-2BC'})
+        print("Judul : " + judul.get_text())
+        print("Tanggal Artikel : " + waktu.get_text())
+        print("Link Artikel : " + link)
+        print("Penulis Artikel : " + penulis.get_text())
+        print("Isi berita : " + str(isi))
+        print("=====================================")
+    except:
+        judul='error'
+        penulis='error'
+        waktu='error'
+        isi='error'
+
+        print("Judul : " + judul)
+        print("Tanggal Artikel : " + waktu)
+        print("Link Artikel : " + link)
+        print("Penulis Artikel : " + penulis)
+        print("Isi berita : " + str(isi))
+        print("=====================================")
 
 def berita2(link):
     kompas_berita_link = requests.get(link)
