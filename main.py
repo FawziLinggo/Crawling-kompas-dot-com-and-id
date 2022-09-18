@@ -20,6 +20,8 @@ def penulis_berita_function(penulis):
     penulisberita = BeautifulSoup(penulis_string, "html.parser").find('a', href=True).contents[0]
     print("Penulis Berita : "+ penulisberita)
 
+
+# FIX ME :(
 def kompas_domain_id(beautify):
     judul = beautify.find('h1', {'class', 'ksm-2Y3 ksm-15b'})
     penulis = beautify.find('div', {'class', 'ksm-1w7 ksm-sDo'})
