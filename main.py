@@ -98,7 +98,7 @@ def berita2(link, nomor_db_terakhir):
 
     penulis_string = str(penulis_)
     penulisberita = BeautifulSoup(penulis_string, "html.parser").find('a', href=True).contents[0]
-    data_news = (str(nomor_db_terakhir), link, judul__, penulisberita, str(waktu_publish), '1 menit baca', str(baca))
+    data_news = (str(nomor_db_terakhir), link, judul__, penulisberita, str(waktu_publish), '1 menit baca', str(baca).strip())
 
     # insertion
     cursor.execute(add_news, data_news)
