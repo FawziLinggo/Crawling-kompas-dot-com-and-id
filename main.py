@@ -1,15 +1,38 @@
 import requests
 from bs4 import BeautifulSoup
+import mysql.connector
+from jproperties import Properties
 
-kompas_domain_com = requests.get(
-    'https://www.kompas.com/edu/read/2022/09/22/114238371/ruu-sisdiknas-tak-masuk-prolegnas-nadiem-yang-penting-hati-tulus-kinerja')
+configs = Properties()
+with open('config.properties', 'rb') as config_file:
+    configs.load(config_file)
+
+kompas_domain_com = requests.get(configs.get('url').data)
 beautify = BeautifulSoup(kompas_domain_com.content, "html.parser")
 berita = beautify.find_all('h3', {'article__title article__title--medium'})
 
 judul_halamanutama = []
 link_halamanutama = []
 total_artikel = 0
-file_ke = 0
+
+db = mysql.connector.connect(user=configs.get('user_db').data,
+                             database=configs.get('database').data,
+                             host=configs.get('hostname_db').data,
+                             port=configs.get('port_db').data,
+                             password=configs.get('password').data)
+cursor = db.cursor()
+
+######### Count databases #########
+count_ = "SELECT COUNT(*) FROM " + configs.get('name_table_db').data
+cursor.execute(count_)
+nomor_db_terakhir = cursor.fetchone()[0]
+nomor_db_terakhir = nomor_db_terakhir + 1
+file_ke = nomor_db_terakhir
+####################################
+
+add_news = ("INSERT INTO "+configs.get('name_table_db').data +
+            "(nomor, url, judul, penulis, waktu_publish,baca,isi_berita) "
+            "VALUES (%s, %s, %s, %s, %s, %s , %s)")
 
 
 def judul_berita_function(judul):
@@ -21,7 +44,7 @@ def judul_berita_function(judul):
 def penulis_berita_function(penulis):
     penulis_string = str(penulis)
     penulisberita = BeautifulSoup(penulis_string, "html.parser").find('a', href=True).contents[0]
-    print("Penulis Berita : " + penulisberita)
+    print("Penulis Berita : " + str(penulisberita))
 
 
 # FIX ME :(
@@ -53,7 +76,7 @@ def kompas_domain_id(beautify):
         print("=====================================")
 
 
-def berita2(link, file_ke):
+def berita2(link, nomor_db_terakhir):
     kompas_berita_link = requests.get(link)
     beautify_berita = BeautifulSoup(kompas_berita_link.content, "html.parser")
 
@@ -62,7 +85,7 @@ def berita2(link, file_ke):
     judul__ = beautify_berita.find('a', {'class', 'article__link'}).text
 
     penulis_ = beautify_berita.find('div', {'class': 'read__credit__item'})
-    waktu_publish = beautify_berita.find('div', {'class', 'article__date'}).contents[0].text
+    waktu_publish = beautify_berita.find('meta', attrs={'name': 'content_PublishedDate'}).get('content')
     baca = (beautify_berita.find('div', {'class', 'read__content'}).get_text())
 
     print("\n=========  WWW.KOMPAS.COM =========  ")
@@ -72,6 +95,14 @@ def berita2(link, file_ke):
     penulis_berita_function(penulis_)
     print("Isi berita : " + baca)
     print("=====================================")
+
+    penulis_string = str(penulis_)
+    penulisberita = BeautifulSoup(penulis_string, "html.parser").find('a', href=True).contents[0]
+    data_news = (str(nomor_db_terakhir), link, judul__, penulisberita, str(waktu_publish), '1 menit baca', str(baca))
+
+    # insertion
+    cursor.execute(add_news, data_news)
+    db.commit()
 
     content.append(str(judul__))
     content.append(str(waktu_publish))
@@ -102,19 +133,20 @@ for each in berita:
     link_halamanutama.append(link)
 
 print(link_halamanutama)
+
 for link in link_halamanutama:
-    file_ke = file_ke +1
+    file_ke = file_ke + 1
+    nomor_db_terakhir = nomor_db_terakhir + 1
     check_link = link.split('.')
     if "kompas" in check_link:
         kompas_artikel_link = requests.get(link)
         beautify_kompas_artikel_link = BeautifulSoup(kompas_artikel_link.content, "html.parser")
         crawl_berita = beautify_kompas_artikel_link.find('h3', {'article__title article__title--medium'})
 
-        # link_to_db = crawl_berita.a.get('href')
-        # judul_to_db = crawl_berita.find('a', {'class', 'article__link'}).text
-        berita2(link,file_ke)
+        berita2(link, nomor_db_terakhir)
         total_artikel += 1
     else:
         print("ini bukan link kompas ya ges ya : " + link)
 
-print(total_artikel)
+cursor.close()
+db.close()
