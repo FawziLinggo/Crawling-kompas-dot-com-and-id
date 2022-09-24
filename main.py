@@ -1,3 +1,5 @@
+import sys
+
 import requests
 from bs4 import BeautifulSoup
 import mysql.connector
@@ -6,10 +8,17 @@ from jproperties import Properties
 configs = Properties()
 with open('config.properties', 'rb') as config_file:
     configs.load(config_file)
-
 kompas_domain_com = requests.get(configs.get('url').data)
 beautify = BeautifulSoup(kompas_domain_com.content, "html.parser")
 berita = beautify.find_all('h3', {'article__title article__title--medium'})
+
+# Check if the link is available? otherwise, the program is forced to stop
+if berita == []:
+    print("Link Error : " + configs.get('url').data)
+    print("Program Stop")
+    sys.exit()
+
+
 
 judul_halamanutama = []
 link_halamanutama = []
@@ -77,47 +86,50 @@ def kompas_domain_id(beautify):
 
 
 def berita2(link, nomor_db_terakhir):
-    kompas_berita_link = requests.get(link)
-    beautify_berita = BeautifulSoup(kompas_berita_link.content, "html.parser")
+    try:
+        kompas_berita_link = requests.get(link)
+        beautify_berita = BeautifulSoup(kompas_berita_link.content, "html.parser")
 
-    content = []
-    # try:
-    judul__ = beautify_berita.find('a', {'class', 'article__link'}).text
+        content = []
+        # try:
+        judul__ = beautify_berita.find('a', {'class', 'article__link'}).text
 
-    penulis_ = beautify_berita.find('div', {'class': 'read__credit__item'})
-    waktu_publish = beautify_berita.find('meta', attrs={'name': 'content_PublishedDate'}).get('content')
-    baca = (beautify_berita.find('div', {'class', 'read__content'}).get_text())
+        penulis_ = beautify_berita.find('div', {'class': 'read__credit__item'})
+        waktu_publish = beautify_berita.find('meta', attrs={'name': 'content_PublishedDate'}).get('content')
+        baca = (beautify_berita.find('div', {'class', 'read__content'}).get_text())
 
-    print("\n=========  WWW.KOMPAS.COM =========  ")
-    print("Judul : " + judul__)
-    print("Tanggal Artikel : " + waktu_publish)
-    print("Link Artikel : " + link)
-    penulis_berita_function(penulis_)
-    print("Isi berita : " + baca)
-    print("=====================================")
+        print("\n=========  WWW.KOMPAS.COM =========  ")
+        print("Judul : " + judul__)
+        print("Tanggal Artikel : " + waktu_publish)
+        print("Link Artikel : " + link)
+        penulis_berita_function(penulis_)
+        print("Isi berita : " + baca)
+        print("=====================================")
 
-    penulis_string = str(penulis_)
-    penulisberita = BeautifulSoup(penulis_string, "html.parser").find('a', href=True).contents[0]
-    data_news = (str(nomor_db_terakhir), link, judul__, penulisberita, str(waktu_publish), '1 menit baca', str(baca).strip())
+        penulis_string = str(penulis_)
+        penulisberita = BeautifulSoup(penulis_string, "html.parser").find('a', href=True).contents[0]
+        data_news = (str(nomor_db_terakhir), link, judul__, penulisberita, str(waktu_publish), '1 menit baca', str(baca).strip())
 
-    # insertion
-    cursor.execute(add_news, data_news)
-    db.commit()
+        # insertion
+        cursor.execute(add_news, data_news)
+        db.commit()
 
-    content.append(str(judul__))
-    content.append(str(waktu_publish))
-    content.append(str(link))
-    content.append(str(penulis_.text))
-    content.append(str(baca))
-    with open('konten[' + str(file_ke) + '].txt', 'a') as f:
-        f.write('\n'.join(content))
-    content.clear()
-    #
-    #
-    # except:
-    #     # beautify_berita = BeautifulSoup(kompas_berita_link.content, "html.parser")
-    #     # kompas_domain_id(beautify_berita)
-    #
+        content.append(str(judul__))
+        content.append(str(waktu_publish))
+        content.append(str(link))
+        content.append(str(penulis_.text))
+        content.append(str(baca))
+        with open('konten[' + str(file_ke) + '].txt', 'a') as f:
+            f.write('\n'.join(content))
+        content.clear()
+    except:
+        print("==================  ERROR =====================")
+        print("The Kompas.id crawl program is not finished yet")
+
+        # FIX ME :(
+        # beautify_berita = BeautifulSoup(kompas_berita_link.content, "html.parser")
+        # kompas_domain_id(beautify_berita)
+
 
 
 def save_to_txt(content, i):
@@ -134,6 +146,8 @@ for each in berita:
 
 print(link_halamanutama)
 
+#### Crawling 20 Link
+link_halamanutama_kedua=[]
 for link in link_halamanutama:
     file_ke = file_ke + 1
     nomor_db_terakhir = nomor_db_terakhir + 1
@@ -142,11 +156,41 @@ for link in link_halamanutama:
         kompas_artikel_link = requests.get(link)
         beautify_kompas_artikel_link = BeautifulSoup(kompas_artikel_link.content, "html.parser")
         crawl_berita = beautify_kompas_artikel_link.find('h3', {'article__title article__title--medium'})
-
         berita2(link, nomor_db_terakhir)
         total_artikel += 1
+
+        crawl_berita_link_array=beautify_kompas_artikel_link.find_all('h3', {'article__title article__title--medium'})
+
+        # 1 link x 20 artikel (link)
+        for looping_link in crawl_berita_link_array:
+            link = looping_link.a.get('href')
+            link_halamanutama_kedua.append(link)
     else:
         print("ini bukan link kompas ya ges ya : " + link)
 
+#### Crawling 400 Link
+link_halamanutama_ketiga=[]
+for link in link_halamanutama_kedua:
+    file_ke = file_ke + 1
+    nomor_db_terakhir = nomor_db_terakhir + 1
+    check_link = link.split('.')
+    if "kompas" in check_link:
+        kompas_artikel_link = requests.get(link)
+        beautify_kompas_artikel_link = BeautifulSoup(kompas_artikel_link.content, "html.parser")
+        crawl_berita = beautify_kompas_artikel_link.find('h3', {'article__title article__title--medium'})
+        berita2(link, nomor_db_terakhir)
+        total_artikel += 1
+
+        crawl_berita_link_array=beautify_kompas_artikel_link.find_all('h3', {'article__title article__title--medium'})
+
+        # 1 link x 20 artikel (link)
+        for looping_link in crawl_berita_link_array:
+            link = looping_link.a.get('href')
+            link_halamanutama_ketiga.append(link)
+    else:
+        print("ini bukan link kompas ya ges ya : " + link)
+
+print("Program Close")
+print(len(link_halamanutama_ketiga))
 cursor.close()
 db.close()
